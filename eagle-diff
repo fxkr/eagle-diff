@@ -83,6 +83,7 @@ def run(file1, file2, temp_dir, out_dir, dpi):
 
     views = [
         View(name="copper-top", dpi=dpi, rats=0, layers="Top Pads Vias Dimension"),
+        View(name="copper-bottom", dpi=dpi, rats=0, layers="Bottom Pads Vias Dimension"),
     ]
 
     # Export images
