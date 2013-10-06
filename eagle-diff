@@ -53,7 +53,8 @@ LAYER_NUMBERS = {
 
 class View(object):
 
-    def __init__(self, rats, layers):
+    def __init__(self, dpi, rats, layers):
+        self.dpi = dpi
         self.rats = rats
         self.layers = filter(None, layers.lower().split(" "))
 
@@ -61,11 +62,11 @@ class View(object):
         return [
             "disp none " + " ".join(str(LAYER_NUMBERS[layer]) for layer in self.layers),
             "rats;" if self.rats else "rip @;",
-            "export image %s 320" % output_file
+            "export image %s %i" % (output_file, self.dpi)
         ]
 
 
-def run(file1, file2, temp_dir, out_dir):
+def run(file1, file2, temp_dir, out_dir, dpi):
 
     def get_tempfile(name):
         return os.path.join(temp_dir, name)
@@ -73,7 +74,7 @@ def run(file1, file2, temp_dir, out_dir):
     def get_outfile(name):
         return os.path.join(out_dir, name)
 
-    view = View(rats=0, layers="Top Pads Vias Dimension Reference") # copper, top
+    view = View(dpi=dpi, rats=0, layers="Top Pads Vias Dimension Reference") # copper, top
     subprocess.call(["eagle", "-C", ";".join(
         view.get_commands(get_tempfile("copper-top-1.png")) +
         ["quit"]
@@ -126,6 +127,7 @@ def main(args):
     par = argparse.ArgumentParser(
         description='Show differences between Cadsoft Eagle files')
     par.add_argument('-V', '--version', action='version', version=__version__)
+    par.add_argument('-d', '--dpi', type=int, default=600)
     par.add_argument('file1', type=os.path.abspath)
     par.add_argument('file2', type=os.path.abspath)
     par.add_argument('output')
@@ -146,7 +148,7 @@ def main(args):
     # Provide a temporary directory
     try:
         temp_dir = tempfile.mkdtemp()
-        run(args.file1, args.file2, temp_dir, args.output)
+        run(args.file1, args.file2, temp_dir, args.output, args.dpi)
     finally:
         try:
             shutil.rmtree(temp_dir)
