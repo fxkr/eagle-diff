@@ -1,0 +1,163 @@
+#!/usr/bin/env python2
+
+"""
+eagle-diff: show differences between Cadsoft Eagle .brd files
+"""
+
+__version__ = "0.0.1"
+
+
+import argparse
+import errno
+import itertools
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+
+import Image
+import ImageOps
+import ImageChops
+import ImageColor
+
+
+LAYER_NAMES = {key: value.lower() for (key, value) in {
+   1: "Top",
+   2: "Route2", 3: "Route3", 4: "Route4", 5: "Route5", 6: "Route6", 7: "Route7", 8: "Route8", 9: "Route9",
+  10: "Route10", 11: "Route11", 12: "Route12", 13: "Route13", 14: "Route14", 15: "Route15",
+  16: "Bottom",
+  17: "Pads", 18: "Vias",
+  19: "Unrouted",
+  20: "Dimension",
+  21: "tPlace", 22: "bPlace",
+  23: "tOrigins", 24: "bOrigins",
+  25: "tNames", 26: "bNames",
+  27: "tValues", 28: "bValues",
+  29: "tStop", 30: "bStop",
+  31: "tCream", 32: "bCream",
+  33: "tFinish", 34: "bFinish",
+  35: "tGlue", 36: "bGlue",
+  37: "tTest", 38: "bTest",
+  39: "tKeepout", 40: "bKeepout",
+  41: "tRestrict", 42: "bRestrict", 43: "vRestrict",
+  44: "Drills", 45: "Holes", 46: "Milling",
+  47: "Measures", 48: "Document", 49: "Reference",
+  51: "tDocu", 52: "bDocu"
+}.iteritems()}
+
+LAYER_NUMBERS = {
+    value: key for (key, value) in LAYER_NAMES.iteritems()
+}
+
+
+class View(object):
+
+    def __init__(self, rats, layers):
+        self.rats = rats
+        self.layers = filter(None, layers.lower().split(" "))
+
+    def get_commands(self, output_file):
+        return [
+            "disp none " + " ".join(str(LAYER_NUMBERS[layer]) for layer in self.layers),
+            "rats;" if self.rats else "rip @;",
+            "export image %s 320" % output_file
+        ]
+
+
+def run(file1, file2, temp_dir, out_dir):
+
+    def get_tempfile(name):
+        return os.path.join(temp_dir, name)
+
+    def get_outfile(name):
+        return os.path.join(out_dir, name)
+
+    view = View(rats=0, layers="Top Pads Vias Dimension Reference") # copper, top
+    subprocess.call(["eagle", "-C", ";".join(
+        view.get_commands(get_tempfile("copper-top-1.png")) +
+        ["quit"]
+    ), file1])
+    subprocess.call(["eagle", "-C", ";".join(
+        view.get_commands(get_tempfile("copper-top-2.png")) +
+        ["quit"]
+    ), file2])
+
+    diff(
+        Image.open(get_tempfile("copper-top-1.png")),
+        Image.open(get_tempfile("copper-top-2.png")),
+    ).save(get_tempfile("copper-top-diff.png"), "PNG")
+
+    shutil.copy2(get_tempfile("copper-top-1.png"), get_outfile("copper-top-1.png"))
+    shutil.copy2(get_tempfile("copper-top-2.png"), get_outfile("copper-top-2.png"))
+    shutil.copy2(get_tempfile("copper-top-diff.png"), get_outfile("copper-top-diff.png"))
+
+
+def diff(image1, image2):
+    image1_gray = ImageOps.grayscale(image1)
+    image2_gray = ImageOps.grayscale(image2)
+
+    red = ImageChops.constant(image1_gray, "#ff0000")
+    green = ImageChops.constant(image1_gray, "#00ff00")
+    black = ImageChops.constant(image1_gray, "#000000")
+
+    image1_mask = image1_gray.point(lambda v: 255 if v > 0 else 0)
+    image2_mask = image2_gray.point(lambda v: 255 if v > 0 else 0)
+    sum_mask = ImageChops.lighter(image1_mask, image2_mask)
+    add_mask = ImageChops.subtract(image2_mask, image1_mask)
+    del_mask = ImageChops.subtract(image1_mask, image2_mask)
+    rest_mask = ImageChops.multiply(image1_mask, image2_mask)
+
+    add_image = ImageOps.colorize(add_mask, "#000000", "#00ff00") # green
+    del_image = ImageOps.colorize(del_mask, "#000000", "#ff0000") # red
+    rest_image = ImageOps.colorize(rest_mask, "#000000", "#404040") # dark gray
+
+    bg_image = ImageChops.multiply(image1, rest_mask.convert("RGB")).convert("RGB")
+    rest_bg_image = ImageChops.blend(rest_image, bg_image, 0.2)
+
+    diff_image = ImageChops.add(ImageChops.lighter(add_image, del_image), rest_bg_image)
+
+    return diff_image
+
+
+def main(args):
+
+    # Argument parsing
+    par = argparse.ArgumentParser(
+        description='Show differences between Cadsoft Eagle files')
+    par.add_argument('-V', '--version', action='version', version=__version__)
+    par.add_argument('file1', type=os.path.abspath)
+    par.add_argument('file2', type=os.path.abspath)
+    par.add_argument('output')
+    args = par.parse_args()
+
+    # Check arguments
+    if not os.path.isfile(args.file1):
+        par.error("no such file: %s" % args.file1)
+    if not os.path.isfile(args.file2):
+        par.error("no such file: %s" % args.file2)
+    if os.path.exists(args.output):
+        par.error("output directory exists already")
+    try:
+        os.mkdir(args.output)
+    except OSError, e:
+        par.error("failed to create output directory: %s" % e.strerror)
+
+    # Provide a temporary directory
+    try:
+        temp_dir = tempfile.mkdtemp()
+        run(args.file1, args.file2, temp_dir, args.output)
+    finally:
+        try:
+            shutil.rmtree(temp_dir)
+        except UnboundLocalError, e:
+            pass # when mkdtemp() fails
+        except OSError as e:
+            # ignore "No such file or directory"
+            if e.errno == errno.ENOENT:
+                raise
+
+
+if __name__ == "__main__":
+    main(sys.argv)
+
