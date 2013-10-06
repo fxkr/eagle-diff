@@ -17,10 +17,10 @@ import sys
 import tempfile
 
 import Image
-import ImageEnhance
-import ImageOps
 import ImageChops
 import ImageColor
+import ImageEnhance
+import ImageOps
 
 
 LAYER_NAMES = {key: value.lower() for (key, value) in {
