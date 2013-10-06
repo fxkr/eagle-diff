@@ -17,6 +17,7 @@ import sys
 import tempfile
 
 import Image
+import ImageEnhance
 import ImageOps
 import ImageChops
 import ImageColor
@@ -53,10 +54,11 @@ LAYER_NUMBERS = {
 
 class View(object):
 
-    def __init__(self, name, dpi, diff, rats, layers):
+    def __init__(self, name, dpi, diff, diff_bg, rats, layers):
         self.name = name
         self.dpi = dpi
         self.diff = diff
+        self.diff_bg = diff_bg
         self.rats = rats
         self.layers = filter(None, layers.lower().split(" "))
 
@@ -70,6 +72,10 @@ class View(object):
     def get_path(self, directory, index):
         return os.path.join(directory, "%s.%s.png" % (self.name, index))
 
+    def get_bg_path(self, directory, index):
+        if self.diff_bg:
+            return self.diff_bg.get_path(directory, index)
+
 
 def run(file1, file2, temp_dir, out_dir, dpi):
 
@@ -82,12 +88,12 @@ def run(file1, file2, temp_dir, out_dir, dpi):
     def get_filename(name, index):
         return "%s.%s.png" % (name, index)
 
-    views = [
-        View(name="copper-top", dpi=dpi, diff=1, rats=0, layers="Top Pads Vias Dimension"),
-        View(name="copper-bottom", dpi=dpi, diff=1, rats=0, layers="Bottom Pads Vias Dimension"),
-        View(name="default-top", dpi=dpi, diff=0, rats=1, layers="Top Pads Vias Dimension tPlace tOrigins tNames Milling tDocu"),
-        View(name="default-bottom", dpi=dpi, diff=0, rats=1, layers="Bottom Pads Vias Dimension bPlace bOrigins bNames Milling bDocu"),
-    ]
+    # Define views
+    default_top = View(name="default-top", dpi=dpi, diff=0, diff_bg=None, rats=1, layers="Top Pads Vias Dimension tPlace tOrigins tNames Milling tDocu")
+    default_bottom = View(name="default-bottom", dpi=dpi, diff=0, diff_bg=None, rats=1, layers="Bottom Pads Vias Dimension bPlace bOrigins bNames Milling bDocu")
+    copper_top = View(name="copper-top", dpi=dpi, diff=1, diff_bg=default_top, rats=0, layers="Top Pads Vias Dimension")
+    copper_bottom = View(name="copper-bottom", dpi=dpi, diff=1, diff_bg=default_bottom, rats=0, layers="Bottom Pads Vias Dimension")
+    views = [default_top, default_bottom, copper_top, copper_bottom]
 
     # Export images
     for i, file in enumerate((file1, file2), 1):
@@ -100,7 +106,8 @@ def run(file1, file2, temp_dir, out_dir, dpi):
         if view.diff:
             diff(
                 Image.open(view.get_path(temp_dir, 1)),
-                Image.open(view.get_path(temp_dir, 2))
+                Image.open(view.get_path(temp_dir, 2)),
+                Image.open(view.get_bg_path(temp_dir, 1))
             ).save(view.get_path(temp_dir, "diff"), "PNG")
 
     # Move to output directory
@@ -111,29 +118,30 @@ def run(file1, file2, temp_dir, out_dir, dpi):
             shutil.move(get_tempfile(get_filename(view.name, "diff")), get_outfile(get_filename(view.name, "diff")))
 
 
-def diff(image1, image2):
+def diff(image1, image2, background):
     image1_gray = ImageOps.grayscale(image1)
     image2_gray = ImageOps.grayscale(image2)
 
-    red = ImageChops.constant(image1_gray, "#ff0000")
-    green = ImageChops.constant(image1_gray, "#00ff00")
     black = ImageChops.constant(image1_gray, "#000000")
 
-    image1_mask = image1_gray.point(lambda v: 255 if v > 0 else 0)
-    image2_mask = image2_gray.point(lambda v: 255 if v > 0 else 0)
-    sum_mask = ImageChops.lighter(image1_mask, image2_mask)
-    add_mask = ImageChops.subtract(image2_mask, image1_mask)
-    del_mask = ImageChops.subtract(image1_mask, image2_mask)
-    rest_mask = ImageChops.multiply(image1_mask, image2_mask)
+    image1_mask = image1_gray.point(lambda v: 255 if v > 0 else 0) # pixel in image1
+    image2_mask = image2_gray.point(lambda v: 255 if v > 0 else 0) # pixel in image2
+    image_bg_mask = ImageChops.multiply(image1_mask, image2_mask) # pixel in both images
+    image_fg_mask = ImageChops.invert(image_bg_mask) # pixel in neither image
+
+    add_mask = ImageChops.subtract(image2_mask, image1_mask) # pixel not in image1 but in image2
+    del_mask = ImageChops.subtract(image1_mask, image2_mask) # pixel in image1 but not in image2
+    mod_mask = ImageChops.lighter(add_mask, del_mask) # pixel in image1 xor in image2
+    unmod_mask = ImageChops.invert(mod_mask) # pixel in both or neither images
 
     add_image = ImageOps.colorize(add_mask, "#000000", "#00ff00") # green
     del_image = ImageOps.colorize(del_mask, "#000000", "#ff0000") # red
-    rest_image = ImageOps.colorize(rest_mask, "#000000", "#404040") # dark gray
 
-    bg_image = ImageChops.multiply(image1, rest_mask.convert("RGB")).convert("RGB")
-    rest_bg_image = ImageChops.blend(rest_image, bg_image, 0.2)
+    unmod_image = ImageChops.multiply(unmod_mask.convert("RGB"), background).convert("RGB")
+    unmod_image = ImageChops.blend(black.convert("RGB"), unmod_image, 0.8) # reduce background brightness
+    unmod_image = ImageEnhance.Color(unmod_image).enhance(0.2) # ...and colorfulness (not exactly saturation)
 
-    diff_image = ImageChops.add(ImageChops.lighter(add_image, del_image), rest_bg_image)
+    diff_image = ImageChops.lighter(ImageChops.lighter(add_image, del_image), unmod_image)
 
     return diff_image
 
