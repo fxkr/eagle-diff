@@ -53,17 +53,21 @@ LAYER_NUMBERS = {
 
 class View(object):
 
-    def __init__(self, dpi, rats, layers):
+    def __init__(self, name, dpi, rats, layers):
+        self.name = name
         self.dpi = dpi
         self.rats = rats
         self.layers = filter(None, layers.lower().split(" "))
 
-    def get_commands(self, output_file):
+    def get_commands(self, directory, index):
         return [
             "disp none " + " ".join(str(LAYER_NUMBERS[layer]) for layer in self.layers),
             "rats;" if self.rats else "rip @;",
-            "export image %s %i" % (output_file, self.dpi)
+            "export image %s %i" % (self.get_path(directory, index), self.dpi)
         ]
+
+    def get_path(self, directory, index):
+        return os.path.join(directory, "%s.%s.png" % (self.name, index))
 
 
 def run(file1, file2, temp_dir, out_dir, dpi):
@@ -74,24 +78,31 @@ def run(file1, file2, temp_dir, out_dir, dpi):
     def get_outfile(name):
         return os.path.join(out_dir, name)
 
-    view = View(dpi=dpi, rats=0, layers="Top Pads Vias Dimension Reference") # copper, top
-    subprocess.call(["eagle", "-C", ";".join(
-        view.get_commands(get_tempfile("copper-top-1.png")) +
-        ["quit"]
-    ), file1])
-    subprocess.call(["eagle", "-C", ";".join(
-        view.get_commands(get_tempfile("copper-top-2.png")) +
-        ["quit"]
-    ), file2])
+    def get_filename(name, index):
+        return "%s.%s.png" % (name, index)
 
-    diff(
-        Image.open(get_tempfile("copper-top-1.png")),
-        Image.open(get_tempfile("copper-top-2.png")),
-    ).save(get_tempfile("copper-top-diff.png"), "PNG")
+    views = [
+        View(name="copper-top", dpi=dpi, rats=0, layers="Top Pads Vias Dimension"),
+    ]
 
-    shutil.copy2(get_tempfile("copper-top-1.png"), get_outfile("copper-top-1.png"))
-    shutil.copy2(get_tempfile("copper-top-2.png"), get_outfile("copper-top-2.png"))
-    shutil.copy2(get_tempfile("copper-top-diff.png"), get_outfile("copper-top-diff.png"))
+    # Export images
+    for i, file in enumerate((file1, file2), 1):
+        nested = [view.get_commands(temp_dir, i) for view in views]
+        flat = [cmd for cmds in nested for cmd in cmds]
+        subprocess.call(["eagle", "-C", ";".join(flat + ["quit"]), file])
+
+    # Generate diffs
+    for view in views:
+        diff(
+            Image.open(view.get_path(temp_dir, 1)),
+            Image.open(view.get_path(temp_dir, 2))
+        ).save(view.get_path(temp_dir, "diff"), "PNG")
+
+    # Move to output directory
+    for view in views:
+        shutil.move(get_tempfile(get_filename(view.name, 1)), get_outfile(get_filename(view.name, 1)))
+        shutil.move(get_tempfile(get_filename(view.name, 2)), get_outfile(get_filename(view.name, 2)))
+        shutil.move(get_tempfile(get_filename(view.name, "diff")), get_outfile(get_filename(view.name, "diff")))
 
 
 def diff(image1, image2):
