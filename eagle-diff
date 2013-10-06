@@ -53,9 +53,10 @@ LAYER_NUMBERS = {
 
 class View(object):
 
-    def __init__(self, name, dpi, rats, layers):
+    def __init__(self, name, dpi, diff, rats, layers):
         self.name = name
         self.dpi = dpi
+        self.diff = diff
         self.rats = rats
         self.layers = filter(None, layers.lower().split(" "))
 
@@ -82,8 +83,10 @@ def run(file1, file2, temp_dir, out_dir, dpi):
         return "%s.%s.png" % (name, index)
 
     views = [
-        View(name="copper-top", dpi=dpi, rats=0, layers="Top Pads Vias Dimension"),
-        View(name="copper-bottom", dpi=dpi, rats=0, layers="Bottom Pads Vias Dimension"),
+        View(name="copper-top", dpi=dpi, diff=1, rats=0, layers="Top Pads Vias Dimension"),
+        View(name="copper-bottom", dpi=dpi, diff=1, rats=0, layers="Bottom Pads Vias Dimension"),
+        View(name="default-top", dpi=dpi, diff=0, rats=1, layers="Top Pads Vias Dimension tPlace tOrigins tNames Milling tDocu"),
+        View(name="default-bottom", dpi=dpi, diff=0, rats=1, layers="Bottom Pads Vias Dimension bPlace bOrigins bNames Milling bDocu"),
     ]
 
     # Export images
@@ -94,16 +97,18 @@ def run(file1, file2, temp_dir, out_dir, dpi):
 
     # Generate diffs
     for view in views:
-        diff(
-            Image.open(view.get_path(temp_dir, 1)),
-            Image.open(view.get_path(temp_dir, 2))
-        ).save(view.get_path(temp_dir, "diff"), "PNG")
+        if view.diff:
+            diff(
+                Image.open(view.get_path(temp_dir, 1)),
+                Image.open(view.get_path(temp_dir, 2))
+            ).save(view.get_path(temp_dir, "diff"), "PNG")
 
     # Move to output directory
     for view in views:
         shutil.move(get_tempfile(get_filename(view.name, 1)), get_outfile(get_filename(view.name, 1)))
         shutil.move(get_tempfile(get_filename(view.name, 2)), get_outfile(get_filename(view.name, 2)))
-        shutil.move(get_tempfile(get_filename(view.name, "diff")), get_outfile(get_filename(view.name, "diff")))
+        if view.diff:
+            shutil.move(get_tempfile(get_filename(view.name, "diff")), get_outfile(get_filename(view.name, "diff")))
 
 
 def diff(image1, image2):
