@@ -167,6 +167,8 @@ def main(args):
     args = par.parse_args()
 
     # Check arguments
+    if not 1 <= args.dpi <= 2400: # eagles limit
+        par.error("dpi not in range 1..2400")
     if not os.path.isfile(args.file1):
         par.error("no such file: %s" % args.file1)
     if not os.path.isfile(args.file2):
