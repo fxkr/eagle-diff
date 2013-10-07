@@ -6,8 +6,8 @@ Author: Felix Kaiser <felix.kaiser@fxkr.net>
 License: revised BSD (see LICENSE)  
 Version: 0.0.1  
 
-## Usage
 
+## Usage
 
 ```
 eagle-diff [-h] [-V] [-d DPI] [--eagle EAGLE] file1 file2 [output]
@@ -26,10 +26,30 @@ optional arguments:
   --eagle EAGLE      eagle binary to use (default: eagle)
 ```
 
+
+## Samples
+
+Here are some low-resolution sample images of the bottom side of a simple PCB.
+
+Individual images of the "new" version of the board:
+
+![copper-bottom.2](/samples/copper-bottom.2.png)
+![copper-bottom.2](/samples/default-bottom.2.png)
+
+Diffs, without and with background image:
+
+![copper-bottom.diff](/samples/copper-bottom.diff.png)
+![copper-bottom.diff_bg](/samples/copper-bottom.diff_bg.png)
+
+As usual, additions are green and deletions are red. You can easily see that some
+traces and vias have been moved and the remaining traces have been made thicker.
+
+
 ## Dependencies
 
 - Python Imaging Library (http://www.pythonware.com/products/pil/)
 - CadSoft EAGLE (www.cadsoft.de)
+
 
 ## Caveats
 
