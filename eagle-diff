@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 """
-eagle-diff: show differences between Cadsoft Eagle .brd files
+eagle-diff: show differences between Cadsoft Eagle PCB layouts
 """
 
 __version__ = "0.0.1"
@@ -150,9 +150,12 @@ def main(args):
         help="resolution of the generated images (default: %(default)s)")
     par.add_argument('--eagle', default="eagle",
         help="eagle binary to use (default: %(default)s)")
-    par.add_argument('file1', type=os.path.abspath)
-    par.add_argument('file2', type=os.path.abspath)
-    par.add_argument('output', nargs="?", default="eagle_diff")
+    par.add_argument('file1', type=os.path.abspath,
+        help="'old' version of the .brd file")
+    par.add_argument('file2', type=os.path.abspath,
+        help="'new' version of the .brd file")
+    par.add_argument('output', nargs="?", default="eagle_diff",
+        help="output directory (will be created; default: %(default)s)")
     args = par.parse_args()
 
     # Check arguments
