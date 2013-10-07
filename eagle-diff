@@ -163,7 +163,7 @@ def main(args):
     par.add_argument('-e', '--eagle', default="eagle")
     par.add_argument('file1', type=os.path.abspath)
     par.add_argument('file2', type=os.path.abspath)
-    par.add_argument('output')
+    par.add_argument('output', nargs="?", default="eagle_diff")
     args = par.parse_args()
 
     # Check arguments
