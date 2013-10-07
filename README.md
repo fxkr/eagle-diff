@@ -4,7 +4,7 @@ Show differences between Cadsoft Eagle PCB layouts
 
 Author: Felix Kaiser <felix.kaiser@fxkr.net>  
 License: revised BSD (see LICENSE)  
-Version: 0.0.1  
+Version: 0.1.0  
 
 
 ## Usage

@@ -4,7 +4,7 @@
 # @Arch users: This file is included in the projects git repository.
 
 pkgname=eagle-diff
-pkgver=0.0.1
+pkgver=0.1.0
 pkgrel=1
 pkgdesc="Show differences between Cadsoft Eagle files"
 url='https://github.com/fxkr/eagle-diff'
