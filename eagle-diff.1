@@ -1,0 +1,25 @@
+.TH eagle-diff 1 "07 Oct 2013" "update-repos 0.0.1" "eagle-diff Manual"
+.SH NAME
+eagle-diff - Show differences between Cadsoft Eagle PCB layouts
+.SH SYNOPSIS
+eagle-diff [-h] [-V] [-d DPI] [--eagle EAGLE] file1 file2 [output]
+.SH OPTIONS
+positional arguments:
+  file1              'old' version of the .brd file
+  file2              'new' version of the .brd file
+  output             output directory (will be created; default: eagle_diff)
+
+optional arguments:
+  -h, --help         show this help message and exit
+  -V, --version      show program's version number and exit
+  -d DPI, --dpi DPI  resolution of the generated images (default: 600)
+  --eagle EAGLE      eagle binary to use (default: eagle)
+.SH CAVEATS
+- No cropping to dimension layer rectangle
+
+- Your two layouts must have the same size. (Otherwise the layouts will
+  probably not be aligned correctly. Also, currently the output image
+  size equals the size of the smaller board.)
+.SH AUTHOR
+Felix Kaiser <felix.kaiser@fxkr.net>
+
