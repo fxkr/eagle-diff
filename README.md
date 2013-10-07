@@ -1,4 +1,6 @@
-# eagle-diff: show differences between Cadsoft Eagle PCB layouts
+# eagle-diff
+
+Show differences between Cadsoft Eagle PCB layouts
 
 Author: Felix Kaiser <felix.kaiser@fxkr.net>  
 License: revised BSD (see LICENSE)  
