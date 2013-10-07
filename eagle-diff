@@ -159,8 +159,10 @@ def main(args):
     par = argparse.ArgumentParser(
         description='Show differences between Cadsoft Eagle files')
     par.add_argument('-V', '--version', action='version', version=__version__)
-    par.add_argument('-d', '--dpi', type=int, default=600)
-    par.add_argument('-e', '--eagle', default="eagle")
+    par.add_argument('-d', '--dpi', type=int, default=600,
+        help="resolution of the generated images (default: %(default)s)")
+    par.add_argument('--eagle', default="eagle",
+        help="eagle binary to use (default: %(default)s)")
     par.add_argument('file1', type=os.path.abspath)
     par.add_argument('file2', type=os.path.abspath)
     par.add_argument('output', nargs="?", default="eagle_diff")
