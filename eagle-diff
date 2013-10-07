@@ -77,7 +77,7 @@ class View(object):
             return self.diff_bg.get_path(directory, index)
 
 
-def run(file1, file2, temp_dir, out_dir, dpi):
+def run(file1, file2, temp_dir, out_dir, dpi, eagle):
 
     def get_tempfile(name):
         return os.path.join(temp_dir, name)
@@ -99,7 +99,7 @@ def run(file1, file2, temp_dir, out_dir, dpi):
     for i, file in enumerate((file1, file2), 1):
         nested = [view.get_commands(temp_dir, i) for view in views]
         flat = [cmd for cmds in nested for cmd in cmds]
-        subprocess.call(["eagle", "-C", ";".join(flat + ["quit"]), file])
+        subprocess.call([eagle, "-C", ";".join(flat + ["quit"]), file])
 
     # Generate diffs
     for view in views:
@@ -160,6 +160,7 @@ def main(args):
         description='Show differences between Cadsoft Eagle files')
     par.add_argument('-V', '--version', action='version', version=__version__)
     par.add_argument('-d', '--dpi', type=int, default=600)
+    par.add_argument('-e', '--eagle', default="eagle")
     par.add_argument('file1', type=os.path.abspath)
     par.add_argument('file2', type=os.path.abspath)
     par.add_argument('output')
@@ -180,7 +181,7 @@ def main(args):
     # Provide a temporary directory
     try:
         temp_dir = tempfile.mkdtemp()
-        run(args.file1, args.file2, temp_dir, args.output, args.dpi)
+        run(args.file1, args.file2, temp_dir, args.output, args.dpi, args.eagle)
     finally:
         try:
             shutil.rmtree(temp_dir)
