@@ -75,15 +75,6 @@ class View(object):
 
 def run(file1, file2, temp_dir, out_dir, dpi, eagle):
 
-    def get_tempfile(name):
-        return os.path.join(temp_dir, name)
-
-    def get_outfile(name):
-        return os.path.join(out_dir, name)
-
-    def get_filename(name, index):
-        return "%s.%s.png" % (name, index)
-
     # Define views
     default_top = View(name="default-top", dpi=dpi, diff=0, diff_bg=None, rats=1, layers="Top Pads Vias Dimension tPlace tOrigins tNames Milling tDocu")
     default_bottom = View(name="default-bottom", dpi=dpi, diff=0, diff_bg=None, rats=1, layers="Bottom Pads Vias Dimension bPlace bOrigins bNames Milling bDocu")
@@ -113,12 +104,12 @@ def run(file1, file2, temp_dir, out_dir, dpi, eagle):
 
     # Move to output directory
     for view in views:
-        shutil.move(get_tempfile(get_filename(view.name, 1)), get_outfile(get_filename(view.name, 1)))
-        shutil.move(get_tempfile(get_filename(view.name, 2)), get_outfile(get_filename(view.name, 2)))
+        shutil.move(view.get_path(temp_dir, 1), view.get_path(out_dir, 1))
+        shutil.move(view.get_path(temp_dir, 2), view.get_path(out_dir, 2))
         if view.diff:
-            shutil.move(get_tempfile(get_filename(view.name, "diff")), get_outfile(get_filename(view.name, "diff")))
+            shutil.move(view.get_path(temp_dir, "diff"), view.get_path(out_dir, "diff"))
         if view.diff and view.diff_bg:
-            shutil.move(get_tempfile(get_filename(view.name, "diff_bg")), get_outfile(get_filename(view.name, "diff_bg")))
+            shutil.move(view.get_path(temp_dir, "diff_bg"), view.get_path(out_dir, "diff_bg"))
 
 
 def diff(image1, image2, background=None):
