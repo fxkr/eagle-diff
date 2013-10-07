@@ -16,11 +16,7 @@ import subprocess
 import sys
 import tempfile
 
-import Image
-import ImageChops
-import ImageColor
-import ImageEnhance
-import ImageOps
+from PIL import Image, ImageChops, ImageColor, ImageEnhance, ImageOps
 
 
 LAYER_NAMES = {key: value.lower() for (key, value) in {
