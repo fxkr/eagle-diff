@@ -50,21 +50,27 @@ LAYER_NUMBERS = {
 
 class View(object):
 
-    def __init__(self, name, dpi, diff, diff_bg, rats, layers):
+    def __init__(self, name, dpi, diff, diff_bg, rats, layers, fill_fix=()):
         self.name = name
         self.dpi = dpi
         self.diff = diff
         self.diff_bg = diff_bg
         self.rats = rats
         self.layers = filter(None, layers.lower().split(" "))
+        self.fill_fix = set(fix_layer_name.lower() for fix_layer_name in fill_fix)
 
     def get_commands(self, directory, index):
-        return [
+        commands = [
             "disp none " + " ".join(str(LAYER_NUMBERS[layer]) for layer in self.layers),
             "rats;" if self.rats else "rip @;",
             "export image %s %i" % (self.get_path(directory, index), self.dpi),
             "undo"
         ]
+        for fix_layer_name in self.fill_fix:
+            layer = str(LAYER_NUMBERS[fix_layer_name])
+            commands.insert(0, "set fill_layer %s 1" % layer)
+            commands.append("undo")
+        return commands
 
     def get_path(self, directory, index):
         return os.path.join(directory, "%s.%s.png" % (self.name, index))
@@ -81,8 +87,23 @@ def run(file1, file2, temp_dir, out_dir, dpi, eagle):
     default_bottom = View(name="default-bottom", dpi=dpi, diff=0, diff_bg=None, rats=1, layers="Bottom Pads Vias Dimension bPlace bOrigins bNames Milling bDocu")
     copper_top = View(name="copper-top", dpi=dpi, diff=1, diff_bg=default_top, rats=0, layers="Top Pads Vias Dimension")
     copper_bottom = View(name="copper-bottom", dpi=dpi, diff=1, diff_bg=default_bottom, rats=0, layers="Bottom Pads Vias Dimension")
+    copper_top_filled = View(name="copper-top-filled", dpi=dpi, diff=1, diff_bg=default_top, rats=1, layers="Top Pads Vias Dimension")
+    copper_bottom_filled = View(name="copper-bottom-filled", dpi=dpi, diff=1, diff_bg=default_bottom, rats=1, layers="Bottom Pads Vias Dimension")
+    layer2 = View(name="layer2", dpi=dpi, diff=1, diff_bg=None, rats=0, layers="Vias Dimension Route2")
+    layer3 = View(name="layer3", dpi=dpi, diff=1, diff_bg=None, rats=0, layers="Vias Dimension Route3")
+    layer14 = View(name="layer14", dpi=dpi, diff=1, diff_bg=None, rats=0, layers="Vias Dimension Route14")
+    layer15 = View(name="layer15", dpi=dpi, diff=1, diff_bg=None, rats=0, layers="Vias Dimension Route15")
+    layer2_filled = View(name="layer2-filled", dpi=dpi, diff=1, diff_bg=None, rats=1, layers="Vias Dimension Route2", fill_fix=["Route2"])
+    layer3_filled = View(name="layer3-filled", dpi=dpi, diff=1, diff_bg=None, rats=1, layers="Vias Dimension Route3", fill_fix=["Route3"])
+    layer14_filled = View(name="layer14-filled", dpi=dpi, diff=1, diff_bg=None, rats=1, layers="Vias Dimension Route14", fill_fix=["Route14"])
+    layer15_filled = View(name="layer15-filled", dpi=dpi, diff=1, diff_bg=None, rats=1, layers="Vias Dimension Route15", fill_fix=["Route15"])
+    views = [
+        default_top, default_bottom, copper_top, copper_bottom,
+        copper_top_filled, copper_bottom_filled,
+        layer2, layer3, layer14, layer15,
+        layer2_filled, layer3_filled, layer14_filled, layer15_filled
+    ] # not including dimension layer view
     dimension = View(name="dimension", dpi=dpi, diff=0, diff_bg=None, rats=0, layers="Dimension")
-    views = [default_top, default_bottom, copper_top, copper_bottom] # not including dimension layer view
 
     # Export images
     for i, file in enumerate((file1, file2), 1):
