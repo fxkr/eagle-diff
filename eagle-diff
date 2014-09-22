@@ -62,7 +62,8 @@ class View(object):
         return [
             "disp none " + " ".join(str(LAYER_NUMBERS[layer]) for layer in self.layers),
             "rats;" if self.rats else "rip @;",
-            "export image %s %i" % (self.get_path(directory, index), self.dpi)
+            "export image %s %i" % (self.get_path(directory, index), self.dpi),
+            "undo"
         ]
 
     def get_path(self, directory, index):
