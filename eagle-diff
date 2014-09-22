@@ -81,13 +81,45 @@ def run(file1, file2, temp_dir, out_dir, dpi, eagle):
     default_bottom = View(name="default-bottom", dpi=dpi, diff=0, diff_bg=None, rats=1, layers="Bottom Pads Vias Dimension bPlace bOrigins bNames Milling bDocu")
     copper_top = View(name="copper-top", dpi=dpi, diff=1, diff_bg=default_top, rats=0, layers="Top Pads Vias Dimension")
     copper_bottom = View(name="copper-bottom", dpi=dpi, diff=1, diff_bg=default_bottom, rats=0, layers="Bottom Pads Vias Dimension")
-    views = [default_top, default_bottom, copper_top, copper_bottom]
+    dimension = View(name="dimension", dpi=dpi, diff=0, diff_bg=None, rats=0, layers="Dimension")
+    views = [default_top, default_bottom, copper_top, copper_bottom] # not including dimension layer view
 
     # Export images
     for i, file in enumerate((file1, file2), 1):
-        nested = [view.get_commands(temp_dir, i) for view in views]
+        nested = [view.get_commands(temp_dir, i) for view in views + [dimension]]
         flat = [cmd for cmds in nested for cmd in cmds]
         subprocess.call([eagle, "-C", ";".join(flat + ["quit"]), file])
+
+    # Determine PCB dimensions
+    alignment_data = {}
+    largest_L = 0
+    largest_T = 0
+    largest_R = 0
+    largest_B = 0
+    largest_W = 0
+    largest_H = 0
+    for i, file in enumerate((file1, file2), 1):
+        img = Image.open(dimension.get_path(temp_dir, i))
+        L, T, R, B = img.getbbox()
+        W, H = img.size
+        alignment_data[file] = L, T, R, B, W, H
+        if L > largest_L: largest_L = L
+        if R > largest_R: largest_R = R
+        if T > largest_T: largest_T = T
+        if B > largest_B: largest_B = B
+        if W > largest_W: largest_W = W
+        if H > largest_H: largest_H = H
+
+    # Align images
+    for i, file in enumerate((file1, file2), 1):
+        L, T, R, B = img.getbbox()
+        W, H = img.size
+
+        for view in views:
+            src_img = Image.open(view.get_path(temp_dir, i))
+            dst_img = Image.new("RGB", (largest_W, largest_H), (0, 0, 0))
+            dst_img.paste(src_img, box=(largest_L - L, largest_T - T))
+            dst_img.save(view.get_path(temp_dir, i))
 
     # Generate diffs
     for view in views:

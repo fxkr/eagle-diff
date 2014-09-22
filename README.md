@@ -54,7 +54,7 @@ traces and vias have been moved and the remaining traces have been made thicker.
 ## Caveats
 
 - No cropping to dimension layer rectangle.
-- Your two layouts must have the same size. (Otherwise the layouts will
-  probably not be aligned correctly. Also, currently the output image
-  size equals the size of the smaller board.)
+- The old and new images are aligned based on the boundary box around everything
+  on the dimension layer. If the size of that boundary box changes, the layouts
+  will probably not be aligned correctly.
 
