@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 
 from PIL import Image, ImageChops, ImageColor, ImageEnhance, ImageOps
 
@@ -59,9 +60,9 @@ class View(object):
         self.layers = filter(None, layers.lower().split(" "))
         self.fill_fix = set(fix_layer_name.lower() for fix_layer_name in fill_fix)
 
-    def get_commands(self, directory, index):
+    def get_commands(self, directory, index, available_layers):
         commands = [
-            "disp none " + " ".join(str(LAYER_NUMBERS[layer]) for layer in self.layers),
+            "disp none " + " ".join(str(LAYER_NUMBERS[layer]) for layer in self.layers if layer.lower() in available_layers),
             "rats;" if self.rats else "rip @;",
             "export image %s %i" % (self.get_path(directory, index), self.dpi),
             "undo"
@@ -105,9 +106,18 @@ def run(file1, file2, temp_dir, out_dir, dpi, eagle):
     ] # not including dimension layer view
     dimension = View(name="dimension", dpi=dpi, diff=0, diff_bg=None, rats=0, layers="Dimension")
 
+    # Find out which layers are available
+    tree1 = ET.parse(file1)
+    tree2 = ET.parse(file2)
+    root1 = tree1.getroot()
+    root2 = tree2.getroot()
+    available_layers_1 = set(l.get("name").lower() for l in root1.find("drawing").find("layers").iter("layer"))
+    available_layers_2 = set(l.get("name").lower() for l in root2.find("drawing").find("layers").iter("layer"))
+    available_layers = available_layers_1.intersection(available_layers_2)
+
     # Export images
     for i, file in enumerate((file1, file2), 1):
-        nested = [view.get_commands(temp_dir, i) for view in views + [dimension]]
+        nested = [view.get_commands(temp_dir, i, available_layers) for view in views + [dimension]]
         flat = [cmd for cmds in nested for cmd in cmds]
         subprocess.call([eagle, "-C", ";".join(flat + ["quit"]), file])
 
