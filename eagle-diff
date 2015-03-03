@@ -62,6 +62,7 @@ class View(object):
 
     def get_commands(self, directory, index, available_layers):
         commands = [
+            "set palette black",
             "disp none " + " ".join(str(LAYER_NUMBERS[layer]) for layer in self.layers if layer.lower() in available_layers),
             "rats;" if self.rats else "rip @;",
             "export image %s %i" % (self.get_path(directory, index), self.dpi),
