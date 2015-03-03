@@ -120,7 +120,13 @@ def run(file1, file2, temp_dir, out_dir, dpi, eagle):
     for i, file in enumerate((file1, file2), 1):
         nested = [view.get_commands(temp_dir, i, available_layers) for view in views + [dimension]]
         flat = [cmd for cmds in nested for cmd in cmds]
-        subprocess.call([eagle, "-C", ";".join(flat + ["quit"]), file])
+        try:
+            subprocess.call([eagle, "-C", ";".join(flat + ["quit"]), file])
+        except OSError, e:
+            print>>sys.stderr, "failed to run eagle:", str(e)
+            print>>sys.stderr
+            print>>sys.stderr, "try specifying the path to eagle with --eagle=..."
+            sys.exit(1)
 
     # Determine PCB dimensions
     alignment_data = {}
