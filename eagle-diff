@@ -138,7 +138,11 @@ def run(file1, file2, temp_dir, out_dir, dpi, eagle):
     largest_H = 0
     for i, file in enumerate((file1, file2), 1):
         img = Image.open(dimension.get_path(temp_dir, i))
-        L, T, R, B = img.getbbox()
+        bbox = img.getbbox()
+        if not bbox:
+            print>>sys.stderr, "error: nothing on dimension layer - can't align images: %s" % file
+            sys.exit(1)
+        L, T, R, B = bbox
         W, H = img.size
         alignment_data[file] = L, T, R, B, W, H
         if L > largest_L: largest_L = L
