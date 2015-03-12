@@ -85,12 +85,14 @@ class View(object):
 def run(file1, file2, temp_dir, out_dir, dpi, eagle):
 
     # Define views
-    default_top = View(name="default-top", dpi=dpi, diff=0, diff_bg=None, rats=1, layers="Top Pads Vias Dimension tPlace tOrigins tNames Milling tDocu")
-    default_bottom = View(name="default-bottom", dpi=dpi, diff=0, diff_bg=None, rats=1, layers="Bottom Pads Vias Dimension bPlace bOrigins bNames Milling bDocu")
+    default_top = View(name="default-top", dpi=dpi, diff=0, diff_bg=None, rats=0, layers="Top Pads Vias Dimension tPlace tOrigins tNames Milling tDocu")
+    default_bottom = View(name="default-bottom", dpi=dpi, diff=0, diff_bg=None, rats=0, layers="Bottom Pads Vias Dimension bPlace bOrigins bNames Milling bDocu")
+    default_top_filled = View(name="default-top-filled", dpi=dpi, diff=0, diff_bg=None, rats=1, layers="Top Pads Vias Dimension tPlace tOrigins tNames Milling tDocu")
+    default_bottom_filled = View(name="default-bottom-filled", dpi=dpi, diff=0, diff_bg=None, rats=1, layers="Bottom Pads Vias Dimension bPlace bOrigins bNames Milling bDocu")
     copper_top = View(name="copper-top", dpi=dpi, diff=1, diff_bg=default_top, rats=0, layers="Top Pads Vias Dimension")
     copper_bottom = View(name="copper-bottom", dpi=dpi, diff=1, diff_bg=default_bottom, rats=0, layers="Bottom Pads Vias Dimension")
-    copper_top_filled = View(name="copper-top-filled", dpi=dpi, diff=1, diff_bg=default_top, rats=1, layers="Top Pads Vias Dimension")
-    copper_bottom_filled = View(name="copper-bottom-filled", dpi=dpi, diff=1, diff_bg=default_bottom, rats=1, layers="Bottom Pads Vias Dimension")
+    copper_top_filled = View(name="copper-top-filled", dpi=dpi, diff=1, diff_bg=default_top_filled, rats=1, layers="Top Pads Vias Dimension")
+    copper_bottom_filled = View(name="copper-bottom-filled", dpi=dpi, diff=1, diff_bg=default_bottom_filled, rats=1, layers="Bottom Pads Vias Dimension")
     layer2 = View(name="layer2", dpi=dpi, diff=1, diff_bg=None, rats=0, layers="Vias Dimension Route2")
     layer3 = View(name="layer3", dpi=dpi, diff=1, diff_bg=None, rats=0, layers="Vias Dimension Route3")
     layer14 = View(name="layer14", dpi=dpi, diff=1, diff_bg=None, rats=0, layers="Vias Dimension Route14")
@@ -100,7 +102,7 @@ def run(file1, file2, temp_dir, out_dir, dpi, eagle):
     layer14_filled = View(name="layer14-filled", dpi=dpi, diff=1, diff_bg=None, rats=1, layers="Vias Dimension Route14", fill_fix=["Route14"])
     layer15_filled = View(name="layer15-filled", dpi=dpi, diff=1, diff_bg=None, rats=1, layers="Vias Dimension Route15", fill_fix=["Route15"])
     views = [
-        default_top, default_bottom, copper_top, copper_bottom,
+        default_top, default_bottom, default_top_filled, default_bottom_filled, copper_top, copper_bottom,
         copper_top_filled, copper_bottom_filled,
         layer2, layer3, layer14, layer15,
         layer2_filled, layer3_filled, layer14_filled, layer15_filled
