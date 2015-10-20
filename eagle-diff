@@ -225,6 +225,8 @@ def main(args):
     par.add_argument('-V', '--version', action='version', version=__version__)
     par.add_argument('-d', '--dpi', type=int, default=600,
         help="resolution of the generated images (default: %(default)s)")
+    par.add_argument('-f', '--force', action='store_true',
+        help="Output directory will be used, even if it already contains files.")
     par.add_argument('--eagle', default="eagle",
         help="eagle binary to use (default: %(default)s)")
     par.add_argument('file1', type=os.path.abspath,
@@ -242,12 +244,13 @@ def main(args):
         par.error("no such file: %s" % args.file1)
     if not os.path.isfile(args.file2):
         par.error("no such file: %s" % args.file2)
-    if os.path.exists(args.output):
+    if os.path.exists(args.output) and not args.force:
         par.error("output directory exists already")
     try:
         os.mkdir(args.output)
     except OSError, e:
-        par.error("failed to create output directory: %s" % e.strerror)
+        if not args.force:
+            par.error("failed to create output directory: %s" % e.strerror)
 
     # Provide a temporary directory
     try:
