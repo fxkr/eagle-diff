@@ -11,6 +11,7 @@ import argparse
 import errno
 import itertools
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -51,16 +52,17 @@ LAYER_NUMBERS = {
 
 class View(object):
 
-    def __init__(self, name, dpi, diff, diff_bg, rats, layers, fill_fix=()):
+    def __init__(self, name, dpi, diff, diff_bg, rats=None, layers=None, fill_fix=()):
         self.name = name
         self.dpi = dpi
         self.diff = diff
         self.diff_bg = diff_bg
         self.rats = rats
-        self.layers = filter(None, layers.lower().split(" "))
+        if layers:
+            self.layers = filter(None, layers.lower().split(" "))
         self.fill_fix = set(fix_layer_name.lower() for fix_layer_name in fill_fix)
 
-    def get_commands(self, directory, index, available_layers):
+    def get_commands_brd(self, directory, index, available_layers):
         commands = [
             "set palette black",
             "disp none " + " ".join(str(LAYER_NUMBERS[layer]) for layer in self.layers if layer.lower() in available_layers),
@@ -74,12 +76,49 @@ class View(object):
             commands.append("undo")
         return commands
 
+    def get_commands_sch(self, directory, index):
+        # little bit gross.... ;)
+        sheet = re.search("sheet-(\d+)", self.name).group(1)
+        assert(sheet)
+        commands = [
+            "set palette black",
+            "edit .s%d" % int(sheet),
+            "; export image %s %i" % (self.get_path(directory, index), self.dpi)
+        ]
+        return commands
+
     def get_path(self, directory, index):
         return os.path.join(directory, "%s.%s.png" % (self.name, index))
 
     def get_bg_path(self, directory, index):
         if self.diff_bg:
             return self.diff_bg.get_path(directory, index)
+
+
+def create_images_pcb(file1, file2, available_layers, views, temp_dir, eagle):
+    for i, file in enumerate((file1, file2), 1):
+        nested = [view.get_commands_brd(temp_dir, i, available_layers) for view in views]
+        flat = [cmd for cmds in nested for cmd in cmds]
+        try:
+            subprocess.call([eagle, "-C", ";".join(flat + ["quit"]), file])
+        except OSError, e:
+            print>>sys.stderr, "failed to run eagle:", str(e)
+            print>>sys.stderr
+            print>>sys.stderr, "try specifying the path to eagle with --eagle=..."
+            sys.exit(1)
+
+
+def create_images_sch(file1, file2, views, temp_dir, eagle):
+    for i, file in enumerate((file1, file2), 1):
+        nested = [view.get_commands_sch(temp_dir, i) for view in views]
+        flat = [cmd for cmds in nested for cmd in cmds]
+        try:
+            subprocess.call([eagle, "-C", ";".join(flat + ["quit"]), file])
+        except OSError, e:
+            print>>sys.stderr, "failed to run eagle:", str(e)
+            print>>sys.stderr
+            print>>sys.stderr, "try specifying the path to eagle with --eagle=..."
+            sys.exit(1)
 
 
 def run(file1, file2, temp_dir, out_dir, dpi, eagle):
@@ -117,18 +156,24 @@ def run(file1, file2, temp_dir, out_dir, dpi, eagle):
     available_layers_1 = set(l.get("name").lower() for l in root1.find("drawing").find("layers").iter("layer"))
     available_layers_2 = set(l.get("name").lower() for l in root2.find("drawing").find("layers").iter("layer"))
     available_layers = available_layers_1.intersection(available_layers_2)
+    sheet_count1 = len(root1.findall(".//sheets/"))
+    sheet_count2 = len(root2.findall(".//sheets/"))
+    sheet_count = min(sheet_count1, sheet_count2) # you're gonna have a bad day if these don't match...
+    view_sources = None
+    dimension_source = None
 
-    # Export images
-    for i, file in enumerate((file1, file2), 1):
-        nested = [view.get_commands(temp_dir, i, available_layers) for view in views + [dimension]]
-        flat = [cmd for cmds in nested for cmd in cmds]
-        try:
-            subprocess.call([eagle, "-C", ";".join(flat + ["quit"]), file])
-        except OSError, e:
-            print>>sys.stderr, "failed to run eagle:", str(e)
-            print>>sys.stderr
-            print>>sys.stderr, "try specifying the path to eagle with --eagle=..."
-            sys.exit(1)
+    if root1.find("drawing").find("board") is not None:
+        # TODO - could assert that both files are same type?
+        create_images_pcb(file1, file2, available_layers, views + [dimension], temp_dir, eagle)
+        dimension_source = dimension
+        view_sources = views
+    else:
+        schematic_views = [View("sheet-%d" % (i+1), dpi=dpi, diff=1, diff_bg=None) for i in range(sheet_count)]
+        create_images_sch(file1, file2, schematic_views, temp_dir, eagle)
+        # FIXME - assumes all sheets are same size! (reasonable, but not 100% reliable)
+        dimension_source = schematic_views[0]
+        view_sources = schematic_views
+
 
     # Determine PCB dimensions
     alignment_data = {}
@@ -139,7 +184,7 @@ def run(file1, file2, temp_dir, out_dir, dpi, eagle):
     largest_W = 0
     largest_H = 0
     for i, file in enumerate((file1, file2), 1):
-        img = Image.open(dimension.get_path(temp_dir, i))
+        img = Image.open(dimension_source.get_path(temp_dir, i))
         bbox = img.getbbox()
         if not bbox:
             print>>sys.stderr, "error: nothing on dimension layer - can't align images: %s" % file
@@ -159,14 +204,14 @@ def run(file1, file2, temp_dir, out_dir, dpi, eagle):
         L, T, R, B = img.getbbox()
         W, H = img.size
 
-        for view in views:
+        for view in view_sources:
             src_img = Image.open(view.get_path(temp_dir, i))
             dst_img = Image.new("RGB", (largest_W, largest_H), (0, 0, 0))
             dst_img.paste(src_img, box=(largest_L - L, largest_T - T))
             dst_img.save(view.get_path(temp_dir, i))
 
     # Generate diffs
-    for view in views:
+    for view in view_sources:
         if view.diff:
             diff(
                 Image.open(view.get_path(temp_dir, 1)),
@@ -180,7 +225,7 @@ def run(file1, file2, temp_dir, out_dir, dpi, eagle):
             ).save(view.get_path(temp_dir, "diff_bg"), "PNG")
 
     # Move to output directory
-    for view in views:
+    for view in view_sources:
         shutil.move(view.get_path(temp_dir, 1), view.get_path(out_dir, 1))
         shutil.move(view.get_path(temp_dir, 2), view.get_path(out_dir, 2))
         if view.diff:
