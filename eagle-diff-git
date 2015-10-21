@@ -1,0 +1,16 @@
+#!/bin/sh
+# git diff wrapper to handle the fixed arguments that git diff needs
+# Usage: 
+# 1. add a git config block like (~/.gitconfig or project level if you prefer)
+# [diff "eagle"]
+#    command = path/to/this/script
+# 2. add a .gitattributes file in your project root with the following lines
+#   *.sch diff=eagle
+#   *.brd diff=eagle
+
+grep '.sch$' <<< $2 && DPI=100
+grep '.brd$' <<< $2 && DPI=600
+
+eagle-diff -f -d $DPI $2 $5
+APP=$(xdg-mime query default image/png | sed s/.desktop$//)
+$APP eagle_diff/*.png
