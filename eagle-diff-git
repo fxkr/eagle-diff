@@ -17,7 +17,11 @@ set -e
 grep '.sch$' <<< "$2" && DPI=100
 grep '.brd$' <<< "$2" && DPI=600
 
-eagle-diff -f -d "$DPI" "$2" "$5"
+DIRECTORY="$(mktemp -d)"
+function cleanup { rm -rf "$DIRECTORY"; }
+trap cleanup EXIT
+
+eagle-diff -d "$DPI" "$2" "$5" "$DIRECTORY/eagle_diff"
 APP="$(xdg-mime query default image/png | sed s/.desktop$//)"
-"$APP" eagle_diff/*.png
+"$APP" "$DIRECTORY"/eagle_diff/*.png
 
