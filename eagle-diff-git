@@ -15,8 +15,8 @@
 set -e
 
 # TODO detect based on contents, not filename. move into eagle-diff
-grep -q '.sch$' <<< "$2" && : ${DPI:=100}
-grep -q '.brd$' <<< "$2" && : ${DPI:=600}
+grep -q '[.]sch$' <<< "$2" && : ${DPI:=100}
+grep -q '[.]brd$' <<< "$2" && : ${DPI:=600}
 : ${DPI:=600}
 
 DIRECTORY="$(mktemp -d)"
