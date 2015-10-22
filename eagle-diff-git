@@ -1,6 +1,6 @@
 #!/bin/sh
 # git diff wrapper to handle the fixed arguments that git diff needs
-# Usage: 
+# Usage:
 # 1. add a git config block like (~/.gitconfig or project level if you prefer)
 # [diff "eagle"]
 #    command = path/to/this/script
