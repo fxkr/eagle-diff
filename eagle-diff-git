@@ -21,7 +21,10 @@ DIRECTORY="$(mktemp -d)"
 function cleanup { rm -rf "$DIRECTORY"; }
 trap cleanup EXIT
 
+# TODO find a way to let the user set --eagle=...
 eagle-diff -d "$DPI" "$2" "$5" "$DIRECTORY/eagle_diff"
+
+# TODO don't rely on the .desktop files name being correct
 APP="$(xdg-mime query default image/png | sed s/.desktop$//)"
 "$APP" "$DIRECTORY"/eagle_diff/*.png
 
