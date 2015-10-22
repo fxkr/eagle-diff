@@ -12,9 +12,10 @@
 # See git(1) for documentation (look for "external diff driver").
 # Parameters: path old-file old-hex old-mode new-file new-hex new-mode
 
-grep '.sch$' <<< $2 && DPI=100
-grep '.brd$' <<< $2 && DPI=600
+grep '.sch$' <<< "$2" && DPI=100
+grep '.brd$' <<< "$2" && DPI=600
 
-eagle-diff -f -d $DPI $2 $5
-APP=$(xdg-mime query default image/png | sed s/.desktop$//)
-$APP eagle_diff/*.png
+eagle-diff -f -d "$DPI" "$2" "$5"
+APP="$(xdg-mime query default image/png | sed s/.desktop$//)"
+"$APP" eagle_diff/*.png
+
