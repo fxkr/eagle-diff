@@ -1,5 +1,6 @@
 #!/bin/sh
 # git diff wrapper to handle the fixed arguments that git diff needs
+#
 # Usage:
 # 1. add a git config block like (~/.gitconfig or project level if you prefer)
 # [diff "eagle"]
@@ -7,6 +8,9 @@
 # 2. add a .gitattributes file in your project root with the following lines
 #   *.sch diff=eagle
 #   *.brd diff=eagle
+#
+# See git(1) for documentation (look for "external diff driver").
+# Parameters: path old-file old-hex old-mode new-file new-hex new-mode
 
 grep '.sch$' <<< $2 && DPI=100
 grep '.brd$' <<< $2 && DPI=600
