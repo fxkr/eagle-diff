@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # git diff wrapper to handle the fixed arguments that git diff needs
 #
 # Usage:
