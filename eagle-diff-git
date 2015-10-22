@@ -12,6 +12,8 @@
 # See git(1) for documentation (look for "external diff driver").
 # Parameters: path old-file old-hex old-mode new-file new-hex new-mode
 
+set -e
+
 grep '.sch$' <<< "$2" && DPI=100
 grep '.brd$' <<< "$2" && DPI=600
 
