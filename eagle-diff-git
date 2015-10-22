@@ -1,0 +1,32 @@
+#!/bin/bash
+# git diff wrapper to handle the fixed arguments that git diff needs
+#
+# Usage:
+# 1. add a git config block like (~/.gitconfig or project level if you prefer)
+# [diff "eagle"]
+#    command = path/to/this/script
+# 2. add a .gitattributes file in your project root with the following lines
+#   *.sch diff=eagle
+#   *.brd diff=eagle
+#
+# See git(1) for documentation (look for "external diff driver").
+# Parameters: path old-file old-hex old-mode new-file new-hex new-mode
+
+set -e
+
+# TODO detect based on contents, not filename. move into eagle-diff
+grep -q '[.]sch$' <<< "$2" && : ${DPI:=100}
+grep -q '[.]brd$' <<< "$2" && : ${DPI:=600}
+: ${DPI:=600}
+
+DIRECTORY="$(mktemp -d)"
+function cleanup { rm -rf "$DIRECTORY"; }
+trap cleanup EXIT
+
+# TODO find a way to let the user set --eagle=...
+eagle-diff -d "$DPI" "$2" "$5" "$DIRECTORY/eagle_diff"
+
+# TODO don't rely on the .desktop files name being correct
+APP="$(xdg-mime query default image/png | sed s/.desktop$//)"
+"$APP" "$DIRECTORY"/eagle_diff/*.png
+
