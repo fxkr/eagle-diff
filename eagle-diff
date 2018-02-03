@@ -275,9 +275,9 @@ def main(args):
     par.add_argument('--eagle', default="eagle",
         help="eagle binary to use (default: %(default)s)")
     par.add_argument('file1', type=os.path.abspath,
-        help="'old' version of the .brd file")
+        help="'old' version of the .brd or .sch file")
     par.add_argument('file2', type=os.path.abspath,
-        help="'new' version of the .brd file")
+        help="'new' version of the .brd or .sch file")
     par.add_argument('output', nargs="?", default="eagle_diff",
         help="output directory (will be created; default: %(default)s)")
     args = par.parse_args()
