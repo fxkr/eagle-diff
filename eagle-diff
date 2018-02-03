@@ -140,11 +140,16 @@ def run(file1, file2, temp_dir, out_dir, dpi, eagle):
     layer3_filled = View(name="layer3-filled", dpi=dpi, diff=1, diff_bg=None, rats=1, layers="Vias Dimension Route3", fill_fix=["Route3"])
     layer14_filled = View(name="layer14-filled", dpi=dpi, diff=1, diff_bg=None, rats=1, layers="Vias Dimension Route14", fill_fix=["Route14"])
     layer15_filled = View(name="layer15-filled", dpi=dpi, diff=1, diff_bg=None, rats=1, layers="Vias Dimension Route15", fill_fix=["Route15"])
+    layer_top_names = View(name="names-values-top", dpi=dpi, diff=0, diff_bg=None, layers="tNames tValues Dimension tPlace tDocu")
+    layer_bottom_names = View(name="names-values-bottom", dpi=dpi, diff=0, diff_bg=None, layers="bNames bValues Dimension bPlace bDocu")
+    layer_top_names_diff = View(name="names-values-top-diff", dpi=dpi, diff=1, diff_bg=layer_top_names, layers="tNames tValues Dimension tPlace tDocu")
+    layer_bottom_names_diff = View(name="names-values-bottom-diff", dpi=dpi, diff=1, diff_bg=layer_bottom_names, layers="bNames bValues Dimension bPlace bDocu")
     views = [
         default_top, default_bottom, default_top_filled, default_bottom_filled, copper_top, copper_bottom,
         copper_top_filled, copper_bottom_filled,
         layer2, layer3, layer14, layer15,
-        layer2_filled, layer3_filled, layer14_filled, layer15_filled
+        layer2_filled, layer3_filled, layer14_filled, layer15_filled,
+        layer_top_names, layer_bottom_names, layer_top_names_diff, layer_bottom_names_diff
     ] # not including dimension layer view
     dimension = View(name="dimension", dpi=dpi, diff=0, diff_bg=None, rats=0, layers="Dimension")
 
@@ -275,9 +280,9 @@ def main(args):
     par.add_argument('--eagle', default="eagle",
         help="eagle binary to use (default: %(default)s)")
     par.add_argument('file1', type=os.path.abspath,
-        help="'old' version of the .brd file")
+        help="'old' version of the .brd or .sch file")
     par.add_argument('file2', type=os.path.abspath,
-        help="'new' version of the .brd file")
+        help="'new' version of the .brd or .sch file")
     par.add_argument('output', nargs="?", default="eagle_diff",
         help="output directory (will be created; default: %(default)s)")
     args = par.parse_args()
